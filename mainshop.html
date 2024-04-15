@@ -115,10 +115,11 @@ h2, h3 {
             <strong>Product Name:</strong> <span id="productNameDisplay"></span>
             <input type="hidden" id="productNameInput" name="productNameInput">
         </div>
-        <input type="text" name="buyerName" placeholder="Your Name" required>
-        <input type="text" name="address" placeholder="Your Address" required>
+        <input type="text" name="buyerName" placeholder="Enter your full name" required>
+        <input type="text" name="address" placeholder="Enter your full address" required>
         <input type="text" name="postalCode" placeholder="Your Postal Code" required>
         <input type="tel" name="contactNumber" placeholder="Your Contact Number" required>
+        	<h6>Send us your valid ID or school id</h6>
         <input type="file" name="idFile" accept="image/*, application/pdf" required>
         <button type="submit">Submit Purchase</button>
     </form>
@@ -206,7 +207,7 @@ h2, h3 {
             `;
             productDiv.innerHTML = productHTML;
 
-            // Add purchase button
+            // Add purchase 
             const purchaseButton = document.createElement('button');
             purchaseButton.textContent = 'Purchase';
             purchaseButton.addEventListener('click', () => openPurchaseForm(product));
