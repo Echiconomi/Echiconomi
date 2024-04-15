@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        /* Add your CSS styles here */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        #loginForm {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        input {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px;
+            width: 100%;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: darkblue;
+        }
+
+        #message {
+            margin: 10px 0;
+            color: red;
+        }
+    </style>
+
+    <!-- Firebase SDK version 9 and above -->
+  <script type="module">
+    // Import necessary functions from Firebase SDK
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js';
+    import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyApELNm7P0BNx4pOFLvMqzxHxs6teVKbgs",
+        authDomain: "memechat2-c1522.firebaseapp.com",
+        databaseURL: "https://memechat2-c1522-default-rtdb.firebaseio.com",
+        projectId: "memechat2-c1522",
+        storageBucket: "memechat2-c1522.appspot.com",
+        messagingSenderId: "112129589692",
+        appId: "1:112129589692:web:84799e4e7540433e946bb9",
+        measurementId: "G-803DVHGV7L"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // Define the DOM element for displaying messages
+    const messageDiv = document.getElementById('message');
+
+    // Login an existing user
+    function loginUser() {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+
+        if (username && password) {
+            const userRef = ref(database, `users/${username}`);
+            get(userRef)
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        if (data.password === password) {
+                            // Check verification status from the verifiedSellers node
+                            const verifiedSellersRef = ref(database, `verifiedSellers/${username}`);
+                            get(verifiedSellersRef)
+                                .then(verifiedSnapshot => {
+                                    if (verifiedSnapshot.exists()) {
+                                        // If verified, proceed with login
+                                        messageDiv.textContent = 'Login successful.';
+                                        localStorage.setItem('username', username);
+                                        loginForm.style.display = 'none';
+                                        window.location.href = 'shopping.html';
+                                    } else {
+                                       
+                                          messageDiv.textContent = 'Your account is not verified. Please contact the admin.';
+                                    }
+                                })
+                                .catch(error => {
+                                    messageDiv.textContent = 'Error: ' + error.message;
+                                });
+                        } else {
+                            messageDiv.textContent = 'Incorrect password.';
+                        }
+                    } else {
+                        messageDiv.textContent = 'User not found.';
+                    }
+                })
+                .catch(error => {
+                    messageDiv.textContent = 'Error: ' + error.message;
+                });
+        } else {
+            messageDiv.textContent = 'Please fill in both fields.';
+        }
+    }
+
+    // Attach event listener to the login button
+    document.getElementById('loginForm').querySelector('button').addEventListener('click', loginUser);
+</script>
+
+</head>
+
+<body>
+    <h1>Login</h1>
+
+    <div id="loginForm">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button>Login</button>
+    </div>
+
+    <div id="message"></div>
+
+</body>
+</html>

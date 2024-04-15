@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Login</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        #loginForm,
+        #ordersPanel {
+            display: none;
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        input {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px;
+            width: 100%;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: darkblue;
+        }
+
+        #message {
+            margin: 10px 0;
+            color: red;
+        }
+
+        /* Styles for each purchase */
+        .purchase-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        /* Delete button styles */
+        .delete-button {
+            background-color: red;
+            margin-top: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: darkred;
+        }
+
+        /* Logout button styles */
+        #logoutButton {
+            background-color: red;
+            color: white;
+        }
+        
+        #logoutButton:hover {
+            background-color: darkred;
+        }
+    </style>
+
+    <!-- Firebase SDK version 9 and above -->
+    <script type="module">
+        // Import necessary Firebase functions
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js';
+        import { getDatabase, ref, get, remove } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyApELNm7P0BNx4pOFLvMqzxHxs6teVKbgs",
+            authDomain: "memechat2-c1522.firebaseapp.com",
+            databaseURL: "https://memechat2-c1522-default-rtdb.firebaseio.com",
+            projectId: "memechat2-c1522",
+            storageBucket: "memechat2-c1522.appspot.com",
+            messagingSenderId: "112129589692",
+            appId: "1:112129589692:web:84799e4e7540433e946bb9",
+            measurementId: "G-803DVHGV7L"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // DOM elements
+        const loginForm = document.getElementById('loginForm');
+        const loginButton = document.getElementById('loginButton');
+        const logoutButton = document.createElement('button');
+        const messageDiv = document.getElementById('message');
+        const ordersPanel = document.getElementById('ordersPanel');
+        const usernameDisplay = document.getElementById('usernameDisplay');
+        const ordersDisplay = document.getElementById('ordersDisplay');
+
+        // Create the logout button
+        logoutButton.id = 'logoutButton';
+        logoutButton.textContent = 'Logout';
+        logoutButton.style.display = 'none';
+        document.body.appendChild(logoutButton);
+
+        // Event listener for showing the login form when the login button is clicked
+        loginButton.addEventListener('click', function() {
+            loginForm.style.display = 'block';
+            loginButton.style.display = 'none'; // Hide login button when login form is visible
+        });
+
+        // Handle form submission for login
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent form submission
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Validate username and password fields
+            if (!username || !password) {
+                messageDiv.textContent = 'Please fill in both fields';
+                return;
+            }
+
+            try {
+                // Check if the user exists in the database
+                const userRef = ref(database, `users/${username}`);
+                const userSnapshot = await get(userRef);
+
+                if (userSnapshot.exists()) {
+                    const userData = userSnapshot.val();
+                    if (userData.password === password) {
+                        // Store username in local storage and proceed with login
+                        localStorage.setItem('username', username);
+                        messageDiv.textContent = 'Login successful';
+                        loginForm.style.display = 'none';
+
+                        // Show the logout button and hide the login button
+                        logoutButton.style.display = 'block';
+                        loginButton.style.display = 'none';
+
+                        // Fetch and display processed purchase data for the user
+                        fetchProcessedPurchaseData(username);
+                    } else {
+                        messageDiv.textContent = 'Incorrect password';
+                    }
+                } else {
+                    messageDiv.textContent = 'User not found';
+                }
+            } catch (error) {
+                messageDiv.textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Event listener for the logout button
+        logoutButton.addEventListener('click', function() {
+            localStorage.removeItem('username'); // Remove username from local storage
+            window.location.href = 'sellerpanel.html'; // Navigate to shopping.html
+        });
+
+        // Function to fetch and display data from processedPurchases
+        async function fetchProcessedPurchaseData(username) {
+            // Reference to the processedPurchases data in Firebase
+            const processedPurchaseRef = ref(database, `processedPurchases`);
+
+            try {
+                // Fetch data
+                const processedPurchaseSnapshot = await get(processedPurchaseRef);
+
+                if (processedPurchaseSnapshot.exists()) {
+                    const data = processedPurchaseSnapshot.val();
+                    const userPurchases = Object.entries(data).filter(([purchaseKey, purchase]) => purchase.sellerName === username);
+
+                    if (userPurchases.length > 0) {
+                        displayPurchaseData(userPurchases);
+                    } else {
+                        ordersDisplay.textContent = 'No data found for this user';
+                    }
+                } else {
+                    ordersDisplay.textContent = 'No data found';
+                }
+            } catch (error) {
+                ordersDisplay.textContent = 'Error fetching data: ' + error.message;
+            }
+        }
+
+        // Function to display purchase data
+        function displayPurchaseData(userPurchases) {
+            ordersPanel.style.display = 'block';
+            ordersDisplay.innerHTML = '';
+
+            userPurchases.forEach(([purchaseKey, purchase], index) => {
+                const purchaseContainer = document.createElement('div');
+                purchaseContainer.className = 'purchase-container';
+
+                const content = `
+                    <h3>Purchase ${index + 1}</h3>
+                    <p>Buyer's Name: ${purchase.buyerName}</p>
+                    <p>Product Name: ${purchase.productName}</p>
+                    <p>Address: ${purchase.address}</p>
+                    <p>Postal Code: ${purchase.postalCode}</p>
+                    <p>Contact Number: ${purchase.contactNumber || 'N/A'}</p>
+                    <p>ID URL: <a href="${purchase.idFileURL}" target="_blank">${purchase.idFileURL}</a></p>
+                `;
+
+                purchaseContainer.innerHTML = content;
+
+                // Create a delete button for each purchase
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-button';
+                // Pass purchaseKey to the event listener
+                deleteButton.addEventListener('click', () => deletePurchaseData(purchaseKey));
+
+                // Append the delete button to the purchase container
+                purchaseContainer.appendChild(deleteButton);
+
+                // Append the purchase container to the orders display
+                ordersDisplay.appendChild(purchaseContainer);
+            });
+
+            // Display the username of the logged-in user
+            usernameDisplay.textContent = `Logged in as: ${userPurchases[0][1].sellerName}`;
+        }
+
+        // Function to delete purchase data
+        async function deletePurchaseData(purchaseKey) {
+            const purchaseRef = ref(database, `processedPurchases/${purchaseKey}`);
+            try {
+                // Remove the purchase data from the database
+                await remove(purchaseRef);
+                alert('Purchase deleted successfully.');
+                // Refresh the display
+                fetchProcessedPurchaseData(localStorage.getItem('username'));
+            } catch (error) {
+                alert('Error deleting purchase: ' + error.message);
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Login</h1>
+    <button id="loginButton">Login</button>
+    <div id="loginForm">
+        <h2>Login</h2>
+        <form>
+            <input type="text" id="loginUsername" placeholder="Username" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <div id="message"></div>
+
+    <div id="ordersPanel">
+        <h2>Orders</h2>
+        <!-- Display the logged-in user's name -->
+        <p id="usernameDisplay"></p>
+        <!-- Display purchase data -->
+        <div id="ordersDisplay"></div>
+    </div>
+</body>
+</html>
