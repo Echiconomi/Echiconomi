@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login and Register</title>
+    <style>
+        /* Add your CSS styles here */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        #registerForm,
+        #loginForm {
+            display: none;
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        input {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px;
+            width: 100%;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: darkblue;
+        }
+
+        #message {
+            margin: 10px 0;
+            color: red;
+        }
+    </style>
+
+    <!-- Firebase SDK version 9 and above -->
+    <script type="module">
+        // Import the functions you need from the SDKs
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js';
+        import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js';
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyApELNm7P0BNx4pOFLvMqzxHxs6teVKbgs",
+            authDomain: "memechat2-c1522.firebaseapp.com",
+            databaseURL: "https://memechat2-c1522-default-rtdb.firebaseio.com",
+            projectId: "memechat2-c1522",
+            storageBucket: "memechat2-c1522.appspot.com",
+            messagingSenderId: "112129589692",
+            appId: "1:112129589692:web:84799e4e7540433e946bb9",
+            measurementId: "G-803DVHGV7L"
+        };
+
+        // Initialize Firebase app
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // DOM elements
+        const registerForm = document.getElementById('registerForm');
+        const loginForm = document.getElementById('loginForm');
+        const registerButton = document.getElementById('registerButton');
+        const loginButton = document.getElementById('loginButton');
+        const messageDiv = document.getElementById('message');
+
+        // Event listeners for the buttons
+        registerButton.addEventListener('click', function () {
+            registerForm.style.display = 'block';
+            loginForm.style.display = 'none';
+        });
+
+        loginButton.addEventListener('click', function () {
+            loginForm.style.display = 'block';
+            registerForm.style.display = 'none';
+        });
+
+        // Register a new user
+        function registerUser() {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+
+            if (username && password) {
+                const userRef = ref(database, 'users/' + username);
+                get(userRef)
+                    .then((snapshot) => {
+                        if (snapshot.exists()) {
+                            messageDiv.textContent = 'Username already exists';
+                        } else {
+                            set(userRef, { password: password })
+                                .then(() => {
+                                    messageDiv.textContent = 'User registered successfully';
+                                    registerForm.style.display = 'none';
+                                })
+                                .catch((error) => {
+                                    messageDiv.textContent = 'Error: ' + error.message;
+                                });
+                        }
+                    })
+                    .catch((error) => {
+                        messageDiv.textContent = 'Error: ' + error.message;
+                    });
+            } else {
+                messageDiv.textContent = 'Please fill in both fields';
+            }
+        }
+
+        // Attach the function handlers to the button's onclick events
+        document.getElementById('registerForm').querySelector('button').addEventListener('click', registerUser);
+        document.getElementById('loginForm').querySelector('button').addEventListener('click', loginUser);
+
+        // Define the loginUser function
+        function loginUser() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (username && password) {
+                const userRef = ref(database, 'users/' + username);
+                get(userRef)
+                    .then((snapshot) => {
+                        if (snapshot.exists()) {
+                            const data = snapshot.val();
+                            if (data.password === password) {
+                                // Store the username in localStorage
+                                localStorage.setItem('username', username);
+
+                                messageDiv.textContent = 'Login successful';
+                                loginForm.style.display = 'none';
+
+                                // Redirect to shopping.html after successful login
+                                window.location.href = 'mainshop.html';
+                            } else {
+                                messageDiv.textContent = 'Incorrect password';
+                            }
+                        } else {
+                            messageDiv.textContent = 'User not found';
+                        }
+                    })
+                    .catch((error) => {
+                        messageDiv.textContent = 'Error: ' + error.message;
+                    });
+            } else {
+                messageDiv.textContent = 'Please fill in both fields';
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <h1>User</h1>
+    <button id="registerButton">Register</button>
+    <button id="loginButton">Login</button>
+
+    <div id="registerForm">
+        <h2>Register</h2>
+        <input type="text" id="registerUsername" placeholder="Username">
+        <input type="password" id="registerPassword" placeholder="Password">
+        <button>Register</button>
+    </div>
+
+    <div id="loginForm">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button>Login</button>
+    </div>
+
+    <div id="message"></div>
+
+</body>
+
+</html>

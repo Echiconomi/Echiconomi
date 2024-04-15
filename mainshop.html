@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping and Purchase Page</title>
+    <style>
+   /* CSS Styles */
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: #f4f4f4; /* Light gray background for the page */
+}
+
+h2, h3 {
+    margin-bottom: 20px;
+}
+
+#welcomeMessage {
+    font-size: 20px;
+    color: green;
+}
+
+/* Product list styles */
+#productsList {
+    margin-top: 20px;
+}
+
+.product {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px; /* Rounded corners for product divs */
+    background-color: #fff; /* White background for product divs */
+}
+
+.product img {
+    width: 100px;
+    height: 100px;
+    border-radius: 5px; /* Rounded corners for product images */
+}
+
+.product h4, p {
+    margin: 5px 0;
+}
+
+.product button {
+    background-color: blue;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 5px; /* Rounded corners for buttons */
+    margin-top: 10px;
+}
+
+.product button:hover {
+    background-color: darkblue;
+}
+
+/* Purchase form styles */
+#purchaseForm {
+    display: none;
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 5px; /* Rounded corners */
+    background-color: #fff; /* White background */
+    margin-top: 20px;
+}
+
+#purchaseForm input[type="text"],
+#purchaseForm input[type="tel"],
+#purchaseForm input[type="file"] {
+    width: calc(100% - 20px); /* Adjust input width */
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px; /* Rounded corners for inputs */
+    border: 1px solid #ccc; /* Input border */
+}
+
+#purchaseForm button {
+    background-color: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 5px; /* Rounded corners */
+    margin-top: 10px;
+    width: 100%; /* Full-width button */
+}
+
+#purchaseForm button:hover {
+    background-color: darkgreen; /* Darker green on hover */
+}
+
+    </style>
+</head>
+
+<body>
+
+    <h2>Shop!</h2>
+
+    <div id="welcomeMessage"></div>
+
+    <!-- Display the list of available products -->
+    <h3>Available Products</h3>
+    <div id="productsList"></div>
+
+    <!-- Purchase form -->
+    <h3 id="purchaseFormHeading">Purchase Form</h3>
+    <form id="purchaseForm">
+        <div>
+            <strong>Product Name:</strong> <span id="productNameDisplay"></span>
+            <input type="hidden" id="productNameInput" name="productNameInput">
+        </div>
+        <input type="text" name="buyerName" placeholder="Your Name" required>
+        <input type="text" name="address" placeholder="Your Address" required>
+        <input type="text" name="postalCode" placeholder="Your Postal Code" required>
+        <input type="tel" name="contactNumber" placeholder="Your Contact Number" required>
+        <input type="file" name="idFile" accept="image/*, application/pdf" required>
+        <button type="submit">Submit Purchase</button>
+    </form>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js';
+        import { getDatabase, ref, set, push, get } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js';
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyApELNm7P0BNx4pOFLvMqzxHxs6teVKbgs",
+            authDomain: "memechat2-c1522.firebaseapp.com",
+            databaseURL: "https://memechat2-c1522-default-rtdb.firebaseio.com",
+            projectId: "memechat2-c1522",
+            storageBucket: "memechat2-c1522.appspot.com",
+            messagingSenderId: "112129589692",
+            appId: "1:112129589692:web:84799e4e7540433e946bb9",
+            measurementId: "G-803DVHGV7L"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const storage = getStorage(app);
+
+        // DOMContentLoaded event handler
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get DOM elements
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const purchaseForm = document.getElementById('purchaseForm');
+
+            // Display welcome message for logged-in user
+            const username = localStorage.getItem('username');
+            if (username) {
+                welcomeMessage.textContent = `Welcome, ${username}!`;
+                fetchAndDisplayProducts();
+            } else {
+                welcomeMessage.textContent = 'Error: No user logged in.';
+            }
+
+            // Add event listeners
+            purchaseForm.addEventListener('submit', handlePurchaseFormSubmission);
+        });
+
+        // Fetch and display products
+        function fetchAndDisplayProducts() {
+            const productsList = document.getElementById('productsList');
+            productsList.innerHTML = '';
+
+            const productsRef = ref(database, 'products/');
+            get(productsRef)
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const productsData = snapshot.val();
+                        const username = localStorage.getItem('username');
+                        if (productsData && typeof productsData === 'object') {
+                            Object.keys(productsData).forEach(productKey => {
+                                const product = productsData[productKey];
+                                displayProduct(product, productsList);
+                            });
+                        }
+                    } else {
+                        productsList.innerHTML = 'No products available.';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching products:', error);
+                    productsList.innerHTML = 'Error fetching products. Please try again later.';
+                });
+        }
+
+        // Display a single product in the list
+        function displayProduct(product, productsList) {
+            const productDiv = document.createElement('div');
+            productDiv.className = 'product';
+
+            const productHTML = `
+                <img src="${product.photoURL}" alt="${product.name}">
+                <h4>${product.name}</h4>
+                <p>Price: ₱${product.price}</p>
+                <p>Description: ${product.description}</p>
+                <p>Seller: ${product.seller}</p>
+            `;
+            productDiv.innerHTML = productHTML;
+
+            // Add purchase button
+            const purchaseButton = document.createElement('button');
+            purchaseButton.textContent = 'Purchase';
+            purchaseButton.addEventListener('click', () => openPurchaseForm(product));
+            productDiv.appendChild(purchaseButton);
+
+            productsList.appendChild(productDiv);
+        }
+
+        // Open the purchase form
+        function openPurchaseForm(product) {
+            const purchaseForm = document.getElementById('purchaseForm');
+            purchaseForm.style.display = 'block';
+            
+            // Scroll to the purchase form heading
+            const purchaseFormHeading = document.getElementById('purchaseFormHeading');
+            purchaseFormHeading.scrollIntoView({ behavior: 'smooth' });
+            
+            document.getElementById('purchaseFormHeading').innerHTML = `Purchase Form (${product.name})`;
+            document.getElementById('productNameDisplay').textContent = product.name;
+            document.getElementById('productNameInput').value = product.name;
+
+            // Add hidden input to store the seller's name
+            const sellerNameInput = document.createElement('input');
+            sellerNameInput.type = 'hidden';
+            sellerNameInput.name = 'sellerName';
+            sellerNameInput.value = product.seller;
+            document.getElementById('purchaseForm').appendChild(sellerNameInput);
+        }
+
+        // Handle purchase form submission
+        function handlePurchaseFormSubmission(event) {
+            event.preventDefault();
+
+            // Handle form submission logic (similar to the handleProductSubmission function)
+            const purchaseForm = event.target;
+            const buyerName = purchaseForm['buyerName'].value.trim();
+            const address = purchaseForm['address'].value.trim();
+            const postalCode = purchaseForm['postalCode'].value.trim();
+            const contactNumber = purchaseForm['contactNumber'].value.trim();
+            const idFile = purchaseForm['idFile'].files[0];
+            const productName = document.getElementById('productNameInput').value;
+            const sellerName = purchaseForm['sellerName'].value;
+
+            if (!buyerName || !address || !postalCode || !contactNumber || !idFile) {
+                alert('Please fill in all fields and upload the required ID file.');
+                return;
+            }
+
+            // Upload ID file to storage
+            const idFileRef = storageRef(storage, `purchase/${buyerName}/${idFile.name}`);
+            uploadBytes(idFileRef, idFile)
+                .then(snapshot => getDownloadURL(snapshot.ref))
+                .then(idFileURL => {
+                    // Save purchase data to the database
+                    const purchaseRef = ref(database, 'purchases/');
+                    const newPurchaseRef = push(purchaseRef);
+                    return set(newPurchaseRef, {
+                        buyerName,
+                        address,
+                        postalCode,
+                        contactNumber,
+                        idFileURL,
+                        productName,
+                        sellerName
+                    });
+                })
+                .then(() => {
+                    alert('Purchase submitted successfully! Please wait for confirmation via text or call!');
+                    purchaseForm.reset();
+                    document.getElementById('purchaseForm').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error occurred while submitting the purchase. Please try again.');
+                });
+        }
+    </script>
+</body>
+
+</html>
